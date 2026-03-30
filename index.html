@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Sydney Trains</title>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root { --bg:#F8F8F8; --fg:#000; --pad:1em; }
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:'Public Sans',sans-serif;font-size:16px;color:var(--fg);background:var(--bg);-webkit-font-smoothing:antialiased;letter-spacing:-0.03em}
+@media screen and (orientation:portrait) and (max-width:480px){body{font-size:14px}}
+@media screen and (orientation:portrait) and (min-width:481px) and (max-width:768px){body{font-size:17px}}
+@media screen and (orientation:portrait) and (min-width:769px){body{font-size:30px}}
+@media screen and (orientation:landscape) and (max-width:768px){body{font-size:12px}}
+@media screen and (orientation:landscape) and (min-width:769px){body{font-size:20px}}
+.screen{display:none}.screen.active{display:block}
+.wrapper{height:100vh;max-width:600px;margin:0 auto;display:flex;flex-direction:column;overflow:hidden}
+/* TIME BAR */
+.time_bar{display:flex;justify-content:space-between;align-items:center;padding:0.4em var(--pad) 0.2em;color:#fff;flex-shrink:0}
+.time_bar .title{font-size:2em;font-weight:500}
+.time_bar .tc{display:flex;align-items:flex-end}
+.time_bar .tt{font-size:1.4em;margin-right:0.4em;padding-bottom:0.1em}
+.time_bar .tn{font-size:2em;font-weight:500}
+/* SERVICE BAR */
+.svc_bar{display:flex;align-items:center;margin:1em var(--pad) 0.5em;border-bottom:0.1em solid var(--fg);padding-bottom:0.75em;gap:0.5em;flex-shrink:0}
+.svc_icon{border-radius:0.2em;padding:0.2em 0.4em;font-size:1.6em;font-weight:700;color:#fff;white-space:nowrap;letter-spacing:0;flex-shrink:0}
+.line_to{font-size:2.85em;font-weight:500;line-height:1em;letter-spacing:-0.03em;-webkit-text-stroke:0.5px}
+.line_via{font-size:1.6em;opacity:0.7;margin-top:0.1em}
+/* SCROLL VIEW */
+.scroll_view{position:relative;display:flex;padding:0 var(--pad);flex:1;overflow:hidden;min-height:0}
+.scroll_container{flex:1;overflow:hidden}
+.station_scroll{display:flex;flex-direction:column}
+.station{height:1.225em;font-size:2em;-webkit-text-stroke:1px;white-space:nowrap;overflow:hidden}
+@media (max-width:480px){.station{-webkit-text-stroke:0.25px}}
+.info_container{position:absolute;right:var(--pad);top:0;bottom:0;background:var(--bg);display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;text-align:right;z-index:2;padding-left:0.5em}
+.title_pair{font-size:1.4em;text-align:right}
+.title_pair .lbl{font-size:1em;font-weight:400;color:#555}
+.title_pair .val{font-size:2em;font-weight:500;line-height:1.1;white-space:nowrap}
+/* BADGES */
+.badge_stack{display:flex;flex-wrap:wrap;gap:0.3em;justify-content:flex-end}
+.badge{color:#fff;font-weight:500;background:#222;padding:0.2em 0.5em;font-size:1.4em;white-space:nowrap}
+/* FOLLOWING SERVICES */
+.following{margin:0.5em var(--pad) 0;border-top:0.1em solid var(--fg);padding-top:0.5em;letter-spacing:-0.025em;flex-shrink:0}
+.f_row{display:flex;font-size:1.85em;justify-content:space-between}
+.f_header{font-size:1.2em;color:#555;margin-bottom:0.2em}
+.f_row .fc{text-align:center;width:17.5%}
+.f_row .fc:first-child{width:55%;text-align:left}
+.f_row .fc:last-child{width:27.5%;text-align:right;white-space:nowrap}
+.f_via{font-size:1.2em;color:#555;margin:0.1em 0 0.4em;display:flex;align-items:center;gap:0.4em}
+.f_via .badge_stack{font-size:0.8em}
+/* BUTTONS */
+.action{padding:0.5em var(--pad);flex-shrink:0}
+.btn_board{display:block;width:100%;padding:0.7em;border:none;border-radius:0.2em;font-size:1.5em;font-weight:700;font-family:'Public Sans',sans-serif;color:#fff;cursor:pointer;margin-bottom:0.4em}
+.btn_board:active{opacity:.85}
+.btn_change{display:block;width:100%;padding:0.5em;background:transparent;border:0.1em solid #666;border-radius:0.2em;font-size:1.2em;font-weight:500;font-family:'Public Sans',sans-serif;color:#666;cursor:pointer}
+/* PICKER */
+.picker{padding:1.5em var(--pad);flex:1;overflow-y:auto}
+.p_title{font-size:1.6em;font-weight:500;margin-bottom:0.4em}
+.p_sub{font-size:1.2em;color:#555;margin-bottom:1em}
+.stop_btn{display:block;width:100%;background:#005AA3;color:#fff;border:none;border-radius:0.2em;padding:0.8em 1em;font-size:1.5em;font-weight:700;font-family:'Public Sans',sans-serif;cursor:pointer;margin-bottom:0.5em;text-align:left}
+.stop_btn:active{opacity:.85}
+.stop_sub{font-size:0.75em;font-weight:400;opacity:.8;display:block;margin-top:0.2em}
+.srch_input{width:100%;padding:0.7em 0.8em;font-size:1.5em;font-family:'Public Sans',sans-serif;border:0.12em solid #005AA3;border-radius:0.2em;background:#fff;color:#000;outline:none}
+.srch_divider{border-top:0.1em solid #ccc;margin:1em 0}
+.srch_lbl{font-size:1.2em;color:#555;margin-bottom:0.5em}
+.err_msg{font-size:1.4em;color:#c0392b;margin-bottom:1em;line-height:1.4}
+.retry_btn{display:block;width:100%;background:#444;color:#fff;border:none;border-radius:0.2em;padding:0.7em;font-size:1.4em;font-weight:700;font-family:'Public Sans',sans-serif;cursor:pointer;margin-bottom:1em}
+.msg{padding:2em var(--pad);text-align:center;color:#555;font-size:1.4em;line-height:1.6}
+/* JOURNEY */
+.j_main{padding:1em var(--pad);flex:1;overflow:hidden}
+.j_lbl{font-size:1.2em;color:#555;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.2em}
+.j_station{font-size:3.5em;font-weight:700;line-height:1.05;margin-bottom:0.3em;letter-spacing:-0.03em}
+.j_divider{border:none;border-top:0.1em solid var(--fg);margin:0.5em 0}
+.j_next{font-size:2.2em;font-weight:500;margin-top:0.2em;margin-bottom:1em}
+.prog{display:flex;align-items:flex-start;overflow-x:auto;padding-bottom:0.5em;margin-top:0.5em}
+.p_stop{display:flex;flex-direction:column;align-items:center;flex:1;min-width:2.5em}
+.p_dot{width:0.7em;height:0.7em;border-radius:50%;flex-shrink:0}
+.p_dot.cur{width:1em;height:1em}
+.p_line{height:0.2em;flex:1;min-width:0.8em;margin-top:0.25em}
+.p_name{font-size:0.65em;text-align:center;line-height:1.2;max-width:3em;margin-top:0.3em}
+.gps_tag{font-size:1em;color:#2e7d32;text-align:right;margin-top:0.5em}
+.btn_alight{display:block;width:100%;background:#222;color:#fff;border:none;border-radius:0.2em;padding:0.7em;font-size:1.5em;font-weight:700;font-family:'Public Sans',sans-serif;cursor:pointer;margin-top:1em}
+</style>
+</head>
+<body>
+
+<div class="screen active" id="screen-gps">
+  <div class="wrapper">
+    <div class="time_bar" style="background:#e65010">
+      <div class="title">Next Service</div>
+      <div class="tc"><div class="tt">Time now</div><div class="tn" id="clk0">--:--</div></div>
+    </div>
+    <div class="picker" id="picker-content">
+      <div class="p_title">Finding your location...</div>
+      <div class="p_sub">Allow location access when prompted.</div>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="screen-platform">
+  <div class="wrapper">
+    <div class="time_bar" id="p_hdr" style="background:#e65010">
+      <div class="title">Next Service</div>
+      <div class="tc"><div class="tt">Time now</div><div class="tn" id="clk1">--:--</div></div>
+    </div>
+    <div id="p_content" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div class="msg">Loading departures...</div>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="screen-journey">
+  <div class="wrapper">
+    <div class="time_bar" id="j_hdr" style="background:#e65010">
+      <div class="title">Journey</div>
+      <div class="tc"><div class="tt">Time now</div><div class="tn" id="clk2">--:--</div></div>
+    </div>
+    <div class="j_main" id="j_content"></div>
+  </div>
+</div>
+
+<script>
+const BASE='/.netlify/functions/tfnsw';
+const LINE_COLOURS={'T1':'#F99D1C','T2':'#0098CD','T3':'#F37021','T4':'#005AA3','T5':'#C4258F','T6':'#7C3E21','T7':'#6F818E','T8':'#00954C','T9':'#D11F2F','M1':'#168388','M':'#168388','L1':'#BE1622','L2':'#DD1E25','L3':'#781140','BMT':'#F99D1C','CCN':'#D11F2F','HUN':'#833134','SCO':'#005AA3','SHL':'#00954C'};
+const NAME_MAP={'Bondi Junction':'Bondi Jn','Sydney Domestic Airport':'Domestic Airport','Sydney International Airport':'Intl Airport','Macquarie Fields':'Macquarie Flds','Macquarie University':'Macquarie Uni','Hawkesbury River':'Hawkesbury Rvr','Mount Colah':'Mt Colah','Mount Druitt':'Mt Druitt','Mount Kuring-gai':'Mt Kuring-gai','Mount Victoria':'Mt Victoria','Newcastle Interchange':'Newcastle Intg','North Strathfield':'N Strathfield','North Wollongong':'N Wollongong','Sydney Olympic Park':'Olympic Park'};
+const ALL_STATIONS=[['Allawah','213420',-33.9697,151.1025],['Arncliffe','215710',-33.9354,151.1454],['Artarmon','206310',-33.8066,151.1908],['Ashfield','218010',-33.8888,151.1249],['Asquith','208610',-33.6899,151.1128],['Auburn','215320',-33.8498,151.033],['Banksia','215810',-33.9522,151.1217],['Bankstown','214710',-33.9164,151.0341],['Bardwell Park','215620',-33.9425,151.1143],['Beecroft','208410',-33.7489,151.0621],['Belmore','214410',-33.9216,151.0977],['Berala','215230',-33.8686,151.0221],['Berowra','209010',-33.6269,151.1528],['Birrong','214820',-33.8981,151.0196],['Blackheath','278010',-33.6349,150.2846],['Blacktown','211210',-33.769,150.9058],['Bondi Junction','200510',-33.8914,151.2474],['Burwood','217810',-33.8773,151.1041],['Cabramatta','213710',-33.8944,150.9355],['Campbelltown','214110',-34.0648,150.8138],['Canterbury','217510',-33.9105,151.1219],['Caringbah','212910',-34.0416,151.1232],['Carlingford','208110',-33.7831,151.0456],['Carramar','213910',-33.8774,150.9946],['Casula','213610',-33.9555,150.912],['Central','200060',-33.883,151.2065],['Chatswood','206710',-33.7969,151.1812],['Chester Hill','214820',-33.8981,151.0196],['Cronulla','213110',-34.0558,151.1528],['Clyde','215410',-33.8468,151.014],['Concord West','217710',-33.8604,151.0884],['Croydon','218110',-33.883,151.1155],['Domestic Airport','216010',-33.9302,151.1633],['Dulwich Hill','218310',-33.9024,151.1384],['Dundas','208010',-33.7976,151.0353],['East Hills','214010',-33.964,151.0116],['East Ryde','207210',-33.8134,151.1284],['Eastwood','208210',-33.7899,151.081],['Edgecliff','200410',-33.8785,151.2362],['Edmondson Park','213810',-33.98,150.8817],['Epping','207710',-33.7716,151.0815],['Erskineville','216510',-33.8993,151.1878],['Fairfield','213710',-33.8718,150.9578],['Flemington','215510',-33.8684,151.0672],['Flinders','213010',-34.0162,151.0873],['Glenfield','213710',-33.9836,150.8896],['Granville','215310',-33.833,151.0138],['Green Square','216310',-33.9107,151.199],['Gymea','212810',-34.029,151.0961],['Hawkesbury River','209310',-33.5614,150.9893],['Heathcote','212710',-34.0829,151.0042],['Homebush','217810',-33.866,151.0833],['Hornsby','208710',-33.7029,151.0993],['Hurstville','213310',-33.9675,151.1003],['International Airport','216110',-33.936,151.171],['Jannali','212910',-34.029,151.0712],['Killara','206910',-33.7697,151.1606],['Kings Cross','200310',-33.8749,151.2227],['Kingsgrove','213210',-33.9336,151.1011],['Kirrawee','212810',-34.0356,151.0704],['Kogarah','213410',-33.9631,151.1337],['Lakemba','214310',-33.9251,151.0721],['Lawson','278210',-33.7237,150.4237],['Leightonfield','215230',-33.8686,151.0221],['Leppington','213910',-33.962,150.818],['Lidcombe','215220',-33.8637,151.0441],['Lindfield','207010',-33.7768,151.168],['Liverpool','213610',-33.9218,150.9238],['Macarthur','214110',-34.0855,150.8023],['Macquarie Fields','213710',-33.972,150.889],['Macquarie Park','207610',-33.7748,151.122],['Macquarie University','207510',-33.7741,151.1131],['Marrickville','217410',-33.9105,151.156],['Mascot','216210',-33.92,151.1894],['Meadowbank','207310',-33.8177,151.0936],['Merrylands','215310',-33.8356,150.9919],['Milsons Point','206110',-33.8481,151.2117],['Miranda','212910',-34.0337,151.1008],['Mortdale','213210',-33.9547,151.0744],['Mt Colah','208810',-33.67,151.1213],['Mt Druitt','211710',-33.7727,150.8197],['Mt Kuring-gai','208910',-33.6476,151.1357],['Mt Victoria','278410',-33.5937,150.2545],['Museum','200160',-33.8762,151.2092],['Newtown','217310',-33.8977,151.1784],['North Ryde','207410',-33.7976,151.1265],['North Strathfield','217710',-33.8604,151.0884],['North Sydney','206210',-33.8401,151.2071],['Normanhurst','208510',-33.712,151.1011],['Oatley','213210',-33.9783,151.0795],['Olympic Park','215610',-33.8473,151.072],['Padstow','214020',-33.953,151.031],['Panania','214020',-33.947,151.0154],['Parramatta','215020',-33.8152,151.0035],['Penrith','212010',-33.7505,150.6942],['Petersham','217510',-33.8988,151.1535],['Punchbowl','214520',-33.9283,151.0518],['Pymble','207110',-33.7512,151.1428],['Redfern','200260',-33.8924,151.202],['Rhodes','217710',-33.8317,151.0868],['Richmond','211810',-33.5997,150.753],['Riverwood','213310',-33.9575,151.0557],['Rockdale','215810',-33.95,151.1357],['Rooty Hill','211610',-33.7729,150.8428],['Roseville','207010',-33.7897,151.1773],['Ryde','207310',-33.8177,151.105],['Schofields','211310',-33.7076,150.8698],['Seven Hills','211010',-33.7769,150.9385],['St James','200210',-33.8729,151.211],['St Leonards','206410',-33.8216,151.1948],['St Marys','211910',-33.7695,150.7751],['Strathfield','217810',-33.8742,151.0916],['Summer Hill','218210',-33.893,151.1376],['Sutherland','212610',-34.0313,151.0565],['Sydenham','216610',-33.9129,151.1739],['Tempe','216710',-33.918,151.1655],['Thornleigh','208410',-33.725,151.0793],['Toongabbie','210710',-33.8019,150.9722],['Town Hall','200070',-33.8733,151.2067],['Turella','215810',-33.95,151.1357],['Villawood','213910',-33.8774,150.9946],['Waitara','208610',-33.6899,151.1128],['Warwick Farm','213610',-33.9218,150.9238],['Waterfall','212510',-34.1327,150.9965],['Waverton','206010',-33.8371,151.2044],['Wentworthville','210810',-33.8097,150.9618],['West Ryde','207310',-33.806,151.0908],['Windsor','210010',-33.6144,150.8122],['Wollstonecraft','206510',-33.8302,151.2004],['Wolli Creek','216010',-33.9302,151.1633],['Woy Woy','209510',-33.5179,151.3238],['Wyong','210210',-33.2846,151.4253],['Wynyard','200080',-33.8671,151.2072],['Yennora','213910',-33.8774,150.9946]];
+
+function lc(n){if(!n)return'#e65010';for(const k of Object.keys(LINE_COLOURS))if(n.includes(k))return LINE_COLOURS[k];return'#e65010'}
+function cn(n){if(!n)return'';n=n.replace(/ (Station|Light Rail|Wharf|Platform \d+)$/i,'').trim();return NAME_MAP[n]||n}
+function nt(){const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+function updateClocks(){['clk0','clk1','clk2'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=nt()})}
+updateClocks();setInterval(updateClocks,10000);
+function cd(s){if(!s)return null;const sec=(new Date(s).getTime()-Date.now())/1000-20;if(sec<0)return null;const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60);if(h>0)return h+'hr '+m+'m';if(m>=1)return m+' min';return'1 min'}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+id).classList.add('active')}
+async function api(endpoint,params){const qs=new URLSearchParams({endpoint,...params}).toString();const r=await fetch(BASE+'?'+qs);if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}
+function dist(la1,lo1,la2,lo2){const R=6371000,dL=(la2-la1)*Math.PI/180,dO=(lo2-lo1)*Math.PI/180,a=Math.sin(dL/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dO/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
+function findNearby(lat,lon){return ALL_STATIONS.map(([n,id,la,lo])=>({name:n,id,distance:dist(lat,lon,la,lo)})).sort((a,b)=>a.distance-b.distance).slice(0,5)}
+
+let state={stopId:null,stopName:null,services:[],boardedService:null,journeyStops:[],currentIdx:0,gpsWatch:null,refreshTimer:null,cdTimer:null};
+
+function setPicker(html){document.getElementById('picker-content').innerHTML=html}
+function searchBox(){return`<div class="srch_divider"></div><div class="srch_lbl">Search for a station:</div><input class="srch_input" type="text" placeholder="Type a station name..." autocomplete="off" oninput="doSearch(this.value)"><div id="sr" style="margin-top:0.5em"></div>`}
+
+function startGps(){
+  if(!navigator.geolocation){showErr('Geolocation not supported.');return}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    setPicker(`<div class="p_title">Finding nearby stations...</div>${searchBox()}`);
+    const stops=findNearby(pos.coords.latitude,pos.coords.longitude);
+    let html=`<div class="p_title">Select your station:</div>`;
+    stops.forEach(s=>{const d=s.distance?Math.round(s.distance)+'m away':'';html+=`<button class="stop_btn" onclick="selectStop('${s.id}','${s.name.replace(/'/g,"\\'")}')"> ${s.name}${d?`<span class="stop_sub">${d}</span>`:''}</button>`});
+    html+=searchBox();
+    setPicker(html);
+  },err=>{showErr(err.code===1?'Location access denied. Search below.':'Could not get your location.')},{enableHighAccuracy:true,timeout:12000});
+}
+
+function showErr(msg){setPicker(`<div class="err_msg">${msg}</div><button class="retry_btn" onclick="startGps()">Try GPS again</button>${searchBox()}`)}
+
+function doSearch(q){
+  const el=document.getElementById('sr');if(!el)return;
+  if(!q){el.innerHTML='';return}
+  const m=ALL_STATIONS.filter(([n])=>n.toLowerCase().includes(q.toLowerCase())).slice(0,8);
+  el.innerHTML=m.map(([n,id])=>`<button class="stop_btn" onclick="selectStop('${id}','${n.replace(/'/g,"\\'")}')">${n}</button>`).join('');
+}
+
+async function selectStop(id,name){
+  state.stopId=id;state.stopName=name;
+  showScreen('platform');
+  await loadDeps();
+  state.refreshTimer=setInterval(loadDeps,30000);
+  state.cdTimer=setInterval(tickCd,1000);
+}
+
+function parseSvc(e){
+  const t=e.transportation||{};
+  const depStr=e.departureTimeEstimated||e.departureTimePlanned;
+  const lineName=(t.disassembledName||t.name||'').replace(/ Line$/,'').trim();
+  const dest=cn(t.destination?.name||'');
+  const platform=e.location?.properties?.platformName||e.location?.properties?.platform||e.location?.platform||'';
+  const raw=e.onwardLocations||e.stopSequence||e.stops||[];
+  const stops=raw.map(s=>cn(s.disassembledName||s.name||'')).filter(Boolean);
+  const isLimited=(t.name||'').toLowerCase().includes('express')||(t.name||'').toLowerCase().includes('limited');
+  return{lineName,dest,platform,depStr,stops,isLimited};
+}
+
+async function loadDeps(){
+  try{
+    const now=new Date();
+    const raw=await api('departure_mon',{
+      outputFormat:'rapidJSON',coordOutputFormat:'EPSG:4326',
+      mode:'direct',type_dm:'stop',name_dm:state.stopId,depArrMacro:'dep',
+      itdDate:now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0'),
+      itdTime:String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0'),
+      TfNSWDM:'true',departureMonitorMacro:'true',includeCompleteStopSeq:'true',version:'10.2.1.42'
+    });
+    const events=(raw.stopEvents||[])
+      .filter(e=>{const d=e.departureTimeEstimated||e.departureTimePlanned;return d&&new Date(d).getTime()>Date.now()-120000})
+      .slice(0,3);
+    state.services=events.map(parseSvc);
+    renderPlatform();
+  }catch(e){
+    document.getElementById('p_content').innerHTML=`<div class="msg">Could not load departures.<br><small style="color:#c0392b">${e.message}</small><br><br><button class="retry_btn" style="max-width:20em;margin:0 auto" onclick="loadDeps()">Try again</button></div>`;
+  }
+}
+
+function renderPlatform(){
+  if(!state.services.length){document.getElementById('p_content').innerHTML='<div class="msg">No upcoming services found.</div>';return}
+  const s=state.services[0];
+  const col=lc(s.lineName);
+  document.getElementById('p_hdr').style.background=col;
+  const stops=s.stops.slice(0,10).map(st=>`<div class="station">${st}</div>`).join('')||`<div class="station" style="-webkit-text-stroke:0;font-size:1.2em;color:#888">No stops data</div>`;
+  const badge=s.isLimited?'Express':'All Stops';
+  const dep=cd(s.depStr);
+  let fol='';
+  if(state.services.length>1){
+    fol=`<div class="following"><div class="f_header" style="display:flex;justify-content:space-between"><span>Following Services</span><span>Platform</span><span>Departs</span></div>`;
+    state.services.slice(1).forEach(f=>{
+      const fcol=lc(f.lineName);const fcd=cd(f.depStr);
+      fol+=`<div class="f_row"><div class="fc">${f.dest}</div><div class="fc">${f.platform||'?'}</div><div class="fc">${fcd||'--'}</div></div>
+      <div class="f_via"><div class="badge_stack"><span class="badge" style="background:${fcol}">${f.lineName||'T'}</span></div></div>`;
+    });
+    fol+=`</div>`;
+  }
+  document.getElementById('p_content').innerHTML=`
+    <div class="svc_bar">
+      <div class="svc_icon" style="background:${col}">${s.lineName||'T'}</div>
+      <div><div class="line_to">${s.dest}</div></div>
+    </div>
+    <div class="scroll_view">
+      <div class="scroll_container"><div class="station_scroll">${stops}</div></div>
+      <div class="info_container">
+        <div class="title_pair"><div class="lbl">Platform</div><div class="val">${s.platform||'?'}</div></div>
+        <div class="badge_stack"><span class="badge">${badge}</span></div>
+        <div class="title_pair"><div class="lbl">Departs</div><div class="val" id="main-cd">${dep||'--'}</div></div>
+      </div>
+    </div>
+    ${fol}
+    <div class="action">
+      <button class="btn_board" style="background:${col}" onclick="boardTrain()">Boarded -- track my journey</button>
+      <button class="btn_change" onclick="resetToGps()">Change station</button>
+    </div>`;
+}
+
+function tickCd(){const e=document.getElementById('main-cd');if(e&&state.services[0])e.textContent=cd(state.services[0].depStr)||'Departing'}
+
+function boardTrain(){
+  const s=state.services[0];
+  state.boardedService=s;state.journeyStops=s.stops.length?s.stops:[s.dest];state.currentIdx=0;
+  clearInterval(state.refreshTimer);clearInterval(state.cdTimer);
+  const col=lc(s.lineName);
+  document.getElementById('j_hdr').style.background=col;
+  showScreen('journey');renderJourney();
+  if(navigator.geolocation)state.gpsWatch=navigator.geolocation.watchPosition(()=>{},null,{enableHighAccuracy:true,maximumAge:15000});
+}
+
+function renderJourney(){
+  const s=state.boardedService,stops=state.journeyStops,idx=state.currentIdx,col=lc(s.lineName);
+  const cur=stops[idx]||s.dest,next=idx<stops.length-1?stops[idx+1]:'Final stop';
+  const prog=stops.map((st,i)=>{
+    const passed=i<idx,isCur=i===idx;
+    const dBg=isCur?'#000':passed?col:'#ccc',lBg=passed?col:'#ccc',nCol=isCur?'#000':passed?col:'#999';
+    const sh=st.replace(' Station','').replace('Junction','Jn');
+    return`<div class="p_stop"><div class="p_dot${isCur?' cur':''}" style="background:${dBg}"></div><div class="p_name" style="color:${nCol};font-weight:${isCur?700:400}">${sh}</div></div>${i<stops.length-1?`<div class="p_line" style="background:${lBg}"></div>`:''}`;
+  }).join('');
+  document.getElementById('j_content').innerHTML=`
+    <div style="display:flex;align-items:center;gap:0.5em;margin-bottom:0.8em">
+      <div class="svc_icon" style="background:${col}">${s.lineName||'T'}</div>
+      <div style="font-size:1.3em;color:#555">to ${s.dest}</div>
+    </div>
+    <div class="j_lbl">Now at</div>
+    <div class="j_station">${cur}</div>
+    <hr class="j_divider">
+    <div class="j_lbl">Next stop</div>
+    <div class="j_next" style="color:${col}">${next}</div>
+    <div class="prog">${prog}</div>
+    <div class="gps_tag">GPS tracking active</div>
+    <button class="btn_alight" onclick="alightTrain()">Alight at this station</button>`;
+}
+
+function alightTrain(){
+  if(state.gpsWatch)navigator.geolocation.clearWatch(state.gpsWatch);
+  state.boardedService=null;state.journeyStops=[];state.currentIdx=0;
+  showScreen('platform');loadDeps();
+  state.refreshTimer=setInterval(loadDeps,30000);state.cdTimer=setInterval(tickCd,1000);
+}
+
+function resetToGps(){
+  clearInterval(state.refreshTimer);clearInterval(state.cdTimer);
+  state.stopId=null;state.stopName=null;state.services=[];
+  setPicker(`<div class="p_title">Finding your location...</div><div class="p_sub">Allow location access when prompted.</div>${searchBox()}`);
+  showScreen('gps');startGps();
+}
+
+startGps();
+</script>
+</body>
+</html>
